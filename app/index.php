@@ -16,6 +16,9 @@ require_once './middlewares/AutentificadorJWT.php';
 
 require_once './controllers/UsuarioController.php';
 require_once './controllers/ProductoController.php';
+require_once './controllers/MesaController.php';
+require_once './controllers/PedidoController.php';
+require_once './controllers/FacturaController.php';
 
 // Load ENV
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
@@ -26,7 +29,6 @@ $app = AppFactory::create();
 
 // Add error middleware
 $app->addErrorMiddleware(true, true, true);
-
 
 // Routes
 $app->group('/usuarios', function (RouteCollectorProxy $group) {
@@ -45,6 +47,29 @@ $app->group('/productos', function (RouteCollectorProxy $group) {
   $group->post('/editar', \ProductoController::class . ':ModificarUno');
 });
 
+$app->group('/mesas', function (RouteCollectorProxy $group) {
+  $group->get('[/]', \MesaController::class . ':TraerTodos');
+  $group->get('/{id}', \MesaController::class . ':TraerUno');
+  $group->post('[/]', \MesaController::class . '::CargarUno');
+  $group->delete('/{id}', \MesaController::class . ':BorrarUno');
+  $group->post('/editar', \MesaController::class . ':ModificarUno');
+});
+
+$app->group('/pedidos', function (RouteCollectorProxy $group) {
+  $group->get('[/]', \PedidoController::class . ':TraerTodos');
+  $group->get('/{id}', \PedidoController::class . ':TraerUno');
+  $group->post('[/]', \PedidoController::class . '::CargarUno');
+  $group->delete('/{id}', \PedidoController::class . ':BorrarUno');
+  $group->post('/editar', \PedidoController::class . ':ModificarUno');
+});
+
+$app->group('/facturas', function (RouteCollectorProxy $group) {
+  $group->get('[/]', \FacturaController::class . ':TraerTodos');
+  $group->get('/{id}', \FacturaController::class . ':TraerUno');
+  $group->post('[/]', \FacturaController::class . '::CargarUno');
+  $group->delete('/{id}', \FacturaController::class . ':BorrarUno');
+  $group->post('/editar', \FacturaController::class . ':ModificarUno');
+});
 
 // JWT test routes
 $app->group('/jwt', function (RouteCollectorProxy $group) {

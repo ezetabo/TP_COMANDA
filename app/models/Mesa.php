@@ -8,9 +8,10 @@ class Mesa{
     public function crearMesa()
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO mesas (nombre, preparador,precio) 
-                                                       VALUES (:nombre, :preparador, :precio)");
-        $consulta->bindValue(':nombre', $this->nombre, PDO::PARAM_STR);       
+        $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO mesas (codigo, estado) 
+                                                       VALUES (:codigo, :estado)");
+        $consulta->bindValue(':codigo', $this->codigo, PDO::PARAM_STR);       
+        $consulta->bindValue(':estado', $this->estado, PDO::PARAM_STR);       
         $consulta->execute();
 
         return $objAccesoDatos->obtenerUltimoId();
@@ -19,7 +20,7 @@ class Mesa{
     public static function obtenerTodos()
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("SELECT id,nombre, preparador,precio
+        $consulta = $objAccesoDatos->prepararConsulta("SELECT id,codigo, estado
                                                        FROM mesas");
         $consulta->execute();
 
@@ -29,7 +30,7 @@ class Mesa{
     public static function obtenerMesa($id)
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("SELECT id, nombre, preparador,precio
+        $consulta = $objAccesoDatos->prepararConsulta("SELECT id, codigo, estado
                                                         FROM mesas 
                                                         WHERE id = :id");
         $consulta->bindValue(':id', $id, PDO::PARAM_STR);
@@ -42,11 +43,10 @@ class Mesa{
     {
         $objAccesoDato = AccesoDatos::obtenerInstancia();
         $consulta = $objAccesoDato->prepararConsulta("UPDATE mesas 
-                                                    SET nombre = :nombre, preparador = :preparador, precio = :precio
+                                                    SET codigo = :codigo, estado = :estado
                                                     WHERE id = :id");       
-        $consulta->bindValue(':nombre', $this->nombre, PDO::PARAM_STR);     
-        $consulta->bindValue(':preparador', $this->preparador, PDO::PARAM_STR);
-        $consulta->bindValue(':precio', $this->precio, PDO::PARAM_STR);
+        $consulta->bindValue(':codigo', $this->codigo, PDO::PARAM_STR);     
+        $consulta->bindValue(':estado', $this->estado, PDO::PARAM_STR);       
         $consulta->bindValue(':id', $this->id, PDO::PARAM_INT);
         $consulta->execute();
     }
@@ -55,8 +55,7 @@ class Mesa{
     {
         $objAccesoDato = AccesoDatos::obtenerInstancia();
         $consulta = $objAccesoDato->prepararConsulta("DELETE FROM mesas
-                                                      WHERE id = :id");
-        $fecha = new DateTime(date("d-m-Y"));
+                                                      WHERE id = :id");     
         $consulta->bindValue(':id', $id, PDO::PARAM_INT);       
         $consulta->execute();
     }
