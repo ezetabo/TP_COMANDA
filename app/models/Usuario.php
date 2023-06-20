@@ -3,21 +3,23 @@
 class Usuario
 {
     public $id;
-    public $usuario;
+    public $mail;
     public $clave;
     public $rol;
+    public $estado;
     public $fecha_inicio;
     public $fecha_fin;
 
     public function crearUsuario()
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO usuarios (usuario, clave,rol,fecha_inicio,fecha_fin) 
-                                                       VALUES (:usuario, :clave, :rol, :fecha_inicio, :fecha_fin)");        
+        $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO usuarios (mail, clave,rol, estado,fecha_inicio,fecha_fin) 
+                                                       VALUES (:mail, :clave, :rol, :estado, :fecha_inicio, :fecha_fin)");        
         $claveHash = password_hash($this->clave, PASSWORD_DEFAULT);
-        $consulta->bindValue(':usuario', $this->usuario, PDO::PARAM_STR);
+        $consulta->bindValue(':mail', $this->mail, PDO::PARAM_STR);
         $consulta->bindValue(':clave', $claveHash);
         $consulta->bindValue(':rol', $this->rol, PDO::PARAM_STR);
+        $consulta->bindValue(':estado', $this->estado, PDO::PARAM_STR);
         $consulta->bindValue(':fecha_inicio', $this->fecha_inicio);
         $consulta->bindValue(':fecha_fin', $this->fecha_fin);
         $consulta->execute();
@@ -28,7 +30,7 @@ class Usuario
     public static function obtenerTodos()
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("SELECT id, usuario, clave ,rol,fecha_inicio,fecha_fin
+        $consulta = $objAccesoDatos->prepararConsulta("SELECT id, mail, clave, rol, estado, fecha_inicio, fecha_fin
                                                        FROM usuarios");
         $consulta->execute();
 
@@ -38,10 +40,10 @@ class Usuario
     public static function obtenerUsuario($id)
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("SELECT id, usuario, clave ,rol,fecha_inicio,fecha_fin
+        $consulta = $objAccesoDatos->prepararConsulta("SELECT id, mail, clave , rol, estado, fecha_inicio, fecha_fin
                                                         FROM usuarios 
                                                         WHERE id = :id");
-        $consulta->bindValue(':id', $id, PDO::PARAM_STR);
+        $consulta->bindValue(':id', $id, PDO::PARAM_INT);
         $consulta->execute();
 
         return $consulta->fetchObject('Usuario');
@@ -51,12 +53,13 @@ class Usuario
     {
         $objAccesoDato = AccesoDatos::obtenerInstancia();
         $consulta = $objAccesoDato->prepararConsulta("UPDATE usuarios 
-                                                    SET usuario = :usuario, clave = :clave, rol = :rol 
+                                                    SET mail = :mail, clave = :clave, rol = :rol, estado = :estado
                                                     WHERE id = :id");
         $claveHash = password_hash($this->clave, PASSWORD_DEFAULT);
-        $consulta->bindValue(':usuario', $this->usuario, PDO::PARAM_STR);
+        $consulta->bindValue(':mail', $this->mail, PDO::PARAM_STR);
         $consulta->bindValue(':clave', $claveHash);
         $consulta->bindValue(':rol', $this->rol, PDO::PARAM_STR);
+        $consulta->bindValue(':estado', $this->estado, PDO::PARAM_STR);
         $consulta->bindValue(':id', $this->id, PDO::PARAM_INT);
         $consulta->execute();
     }
@@ -70,4 +73,17 @@ class Usuario
         $consulta->bindValue(':fecha_fin', date_format($fecha, 'Y-m-d H:i:s'));
         $consulta->execute();
     }
+
+    public static function BuscarPorMail($mail)
+    {
+        $objAccesoDatos = AccesoDatos::obtenerInstancia();
+        $consulta = $objAccesoDatos->prepararConsulta("SELECT id, mail, clave , rol, estado, fecha_inicio, fecha_fin
+                                                        FROM usuarios 
+                                                        WHERE mail = :mail");
+        $consulta->bindValue(':mail', $mail, PDO::PARAM_STR);
+        $consulta->execute();
+
+        return $consulta->fetchObject('Usuario');
+    }
+
 }

@@ -6,45 +6,96 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface;
 use Slim\Factory\AppFactory;
+use Slim\Psr7\Cookies;
 use Slim\Routing\RouteCollectorProxy;
 use Slim\Routing\RouteContext;
 
 require __DIR__ . '/../vendor/autoload.php';
 
 require_once './db/AccesoDatos.php';
+require_once './middlewares/Logger.php';
 require_once './middlewares/AutentificadorJWT.php';
+require_once './middlewares/Check.php';
 
 require_once './controllers/UsuarioController.php';
 require_once './controllers/ProductoController.php';
 require_once './controllers/MesaController.php';
 require_once './controllers/PedidoController.php';
-require_once './controllers/FacturaController.php';
+
+
 
 // Load ENV
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->safeLoad();
-
+define('PASS_SECRET', $_ENV['CLAVE_SECRETA']);
+define('ENCRYPT_TYPE', $_ENV['TIPO_ENCRIPTACION']);
 // Instantiate App
 $app = AppFactory::create();
 
 // Add error middleware
-$app->addErrorMiddleware(true, true, true);
+$errorMiddleware = function ($request, $exception, $displayErrorDetails) use ($app) {
+  $statusCode = 500;
+  $errorMessage = $exception->getMessage();
+  $response = $app->getResponseFactory()->createResponse($statusCode);
+  $response->getBody()->write(json_encode(['error' => $errorMessage]));
+
+  return $response->withHeader('Content-Type', 'application/json');
+};
+$app->addErrorMiddleware(true, true, true)
+  ->setDefaultErrorHandler($errorMiddleware);
+
+$app->addBodyParsingMiddleware();
 
 // Routes
+
+$app->post('/login', \UsuarioController::class . '::Login')
+  ->add(\Logger::class . '::ValidarEstado')
+  ->add(\Logger::class . '::ValidarMailYpass')
+  ->add(\Logger::class . '::LimpiarCookie');
+
+$app->get('/logout', function (Request $request, Response $response) {
+  $payload = json_encode(array("mensaje" => 'Sesion Cerrada'));
+  $response->getBody()->write($payload);
+  return $response->withHeader('Content-Type', 'application/json');
+})->add(\Logger::class . '::LimpiarCookie');
+
 $app->group('/usuarios', function (RouteCollectorProxy $group) {
   $group->get('[/]', \UsuarioController::class . ':TraerTodos');
   $group->get('/{id}', \UsuarioController::class . ':TraerUno');
-  $group->post('[/]', \UsuarioController::class . '::CargarUno');
+  $group->post('[/]', \UsuarioController::class . '::CargarUno')
+    ->add(\Check::class . '::ExisteMail')
+    ->add(\Check::class . '::Rol')
+    ->add(\Check::class . '::Clave')
+    ->add(\Check::class . '::Mail');
   $group->delete('/{id}', \UsuarioController::class . ':BorrarUno');
-  $group->post('/editar', \UsuarioController::class . ':ModificarUno');
-});
+  $group->put('/modificar', \UsuarioController::class . ':ModificarUno');
+})
+  ->add(\Logger::class . '::ValidarRol')
+  ->add(\Logger::class . '::ValidarUsuario')
+  ->add(\Logger::class . '::EstaLogueado');
+
 
 $app->group('/productos', function (RouteCollectorProxy $group) {
   $group->get('[/]', \ProductoController::class . ':TraerTodos');
   $group->get('/{id}', \ProductoController::class . ':TraerUno');
-  $group->post('[/]', \ProductoController::class . '::CargarUno');
-  $group->delete('/{id}', \ProductoController::class . ':BorrarUno');
-  $group->post('/editar', \ProductoController::class . ':ModificarUno');
+  $group->post('[/]', \ProductoController::class . '::CargarUno')
+    ->add(function ($request, $handler) {
+      return \Logger::ValidarRol($request, $handler, 'socio');
+    })
+    ->add(\Logger::class . '::ValidarUsuario')
+    ->add(\Logger::class . '::EstaLogueado');
+  $group->delete('/{id}', \ProductoController::class . ':BorrarUno')
+    ->add(function ($request, $handler) {
+      return \Logger::ValidarRol($request, $handler, 'socio');
+    })
+    ->add(\Logger::class . '::ValidarUsuario')
+    ->add(\Logger::class . '::EstaLogueado');
+  $group->post('/editar', \ProductoController::class . ':ModificarUno')
+    ->add(function ($request, $handler) {
+      return \Logger::ValidarRol($request, $handler, 'socio');
+    })
+    ->add(\Logger::class . '::ValidarUsuario')
+    ->add(\Logger::class . '::EstaLogueado');
 });
 
 $app->group('/mesas', function (RouteCollectorProxy $group) {
@@ -53,7 +104,9 @@ $app->group('/mesas', function (RouteCollectorProxy $group) {
   $group->post('[/]', \MesaController::class . '::CargarUno');
   $group->delete('/{id}', \MesaController::class . ':BorrarUno');
   $group->post('/editar', \MesaController::class . ':ModificarUno');
-});
+})
+  ->add(\Logger::class . '::ValidarUsuario')
+  ->add(\Logger::class . '::EstaLogueado');
 
 $app->group('/pedidos', function (RouteCollectorProxy $group) {
   $group->get('[/]', \PedidoController::class . ':TraerTodos');
@@ -61,20 +114,16 @@ $app->group('/pedidos', function (RouteCollectorProxy $group) {
   $group->post('[/]', \PedidoController::class . '::CargarUno');
   $group->delete('/{id}', \PedidoController::class . ':BorrarUno');
   $group->post('/editar', \PedidoController::class . ':ModificarUno');
-});
+  $group->put('/modificar', \PedidoController::class . ':Pruebas');
+})
+  ->add(\Logger::class . '::ValidarUsuario')
+  ->add(\Logger::class . '::EstaLogueado');
 
-$app->group('/facturas', function (RouteCollectorProxy $group) {
-  $group->get('[/]', \FacturaController::class . ':TraerTodos');
-  $group->get('/{id}', \FacturaController::class . ':TraerUno');
-  $group->post('[/]', \FacturaController::class . '::CargarUno');
-  $group->delete('/{id}', \FacturaController::class . ':BorrarUno');
-  $group->post('/editar', \FacturaController::class . ':ModificarUno');
-});
 
 // JWT test routes
 $app->group('/jwt', function (RouteCollectorProxy $group) {
 
-  $group->post('/crearToken', function (Request $request, Response $response) {    
+  $group->post('/crearToken', function (Request $request, Response $response) {
     $parametros = $request->getParsedBody();
 
     $usuario = $parametros['usuario'];
@@ -143,11 +192,10 @@ $app->group('/jwt', function (RouteCollectorProxy $group) {
   });
 });
 
-
 $app->get('[/]', function (Request $request, Response $response) {
-    $payload = json_encode(array("mensaje" => 'TP_La_Comamda - Taboada Ezequiel'));
-    $response->getBody()->write($payload);
-    return $response->withHeader('Content-Type', 'application/json');
+  $payload = json_encode(array("mensaje" => 'TP_TABOADA_EZEQUIEL'));
+  $response->getBody()->write($payload);
+  return $response->withHeader('Content-Type', 'application/json');
 });
 
 $app->run();

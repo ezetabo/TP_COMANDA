@@ -2,18 +2,16 @@
 
 class Producto{
     public $id;
-    public $nombre;
-    public $preparador;
+    public $nombre;   
     public $precio;
 
     public function crearProducto()
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO productos (nombre, preparador,precio) 
-                                                       VALUES (:nombre, :preparador, :precio)");
-        $consulta->bindValue(':nombre', $this->nombre, PDO::PARAM_STR);
-        $consulta->bindValue(':preparador', $this->preparador, PDO::PARAM_STR);
-        $consulta->bindValue(':precio', $this->precio, PDO::PARAM_STR);
+        $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO productos (nombre, precio) 
+                                                       VALUES (:nombre, :precio)");
+        $consulta->bindValue(':nombre', $this->nombre, PDO::PARAM_STR);       
+        $consulta->bindValue(':precio', $this->precio, PDO::PARAM_INT);
         $consulta->execute();
 
         return $objAccesoDatos->obtenerUltimoId();
@@ -22,7 +20,7 @@ class Producto{
     public static function obtenerTodos()
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("SELECT id,nombre, preparador,precio
+        $consulta = $objAccesoDatos->prepararConsulta("SELECT id,nombre,precio
                                                        FROM productos");
         $consulta->execute();
 
@@ -32,7 +30,7 @@ class Producto{
     public static function obtenerProducto($id)
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("SELECT id, nombre, preparador,precio
+        $consulta = $objAccesoDatos->prepararConsulta("SELECT id, nombre, precio
                                                         FROM productos 
                                                         WHERE id = :id");
         $consulta->bindValue(':id', $id, PDO::PARAM_STR);
@@ -45,11 +43,10 @@ class Producto{
     {
         $objAccesoDato = AccesoDatos::obtenerInstancia();
         $consulta = $objAccesoDato->prepararConsulta("UPDATE productos 
-                                                    SET nombre = :nombre, preparador = :preparador, precio = :precio
+                                                    SET nombre = :nombre,precio = :precio
                                                     WHERE id = :id");       
         $consulta->bindValue(':nombre', $this->nombre, PDO::PARAM_STR);     
-        $consulta->bindValue(':preparador', $this->preparador, PDO::PARAM_STR);
-        $consulta->bindValue(':precio', $this->precio, PDO::PARAM_STR);
+        $consulta->bindValue(':precio', $this->precio, PDO::PARAM_INT);
         $consulta->bindValue(':id', $this->id, PDO::PARAM_INT);
         $consulta->execute();
     }

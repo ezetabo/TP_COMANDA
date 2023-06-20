@@ -2,14 +2,14 @@
 require_once './interfaces/IApiUsable.php';
 require_once './helpers/helpers.php';
 
-class PedidoController extends Pedido implements IApiUsable
-{
+class OrdenController extends Orden implements IApiUsable
+{   
     public static function CargarUno($request, $response, $args)
     {
         $parametros = $request->getParsedBody();
-        $usr = newPedido($parametros);
-        $usr->crearPedido();
-        $payload = json_encode(array("mensaje" => "Pedido creado con exito"));
+        $usr = newOrden($parametros);
+        $usr->crearOrden();
+        $payload = json_encode(array("mensaje" => "Orden creada con exito"));
         $response->getBody()->write($payload);
         return $response
             ->withHeader('Content-Type', 'application/json');
@@ -18,8 +18,8 @@ class PedidoController extends Pedido implements IApiUsable
     public function TraerUno($request, $response, $args)
     {
         $usr = $args['id'];
-        $Pedido = Pedido::obtenerPedido($usr);
-        $payload = json_encode($Pedido);
+        $Orden = Orden::obtenerOrden($usr);
+        $payload = json_encode($Orden);
 
         $response->getBody()->write($payload);
         return $response
@@ -28,8 +28,8 @@ class PedidoController extends Pedido implements IApiUsable
 
     public function TraerTodos($request, $response, $args)
     {
-        $lista = Pedido::obtenerTodos();
-        $payload = json_encode(array("listaPedido" => $lista));
+        $lista = Orden::obtenerTodos();
+        $payload = json_encode(array("listaOrden" => $lista));
 
         $response->getBody()->write($payload);
         return $response
@@ -39,11 +39,11 @@ class PedidoController extends Pedido implements IApiUsable
     public static function ModificarUno($request, $response, $args)
     {
         $parametros = $request->getParsedBody();
-        $usr = newPedido($parametros);
+        $usr = newOrden($parametros);
         $usr->id = $parametros['id'];
-        $usr->modificarPedido();
+        $usr->modificarOrden();
 
-        $payload = json_encode(array("mensaje" => "Pedido modificado con exito"));
+        $payload = json_encode(array("mensaje" => "Orden modificada con exito"));
 
         $response->getBody()->write($payload);
         return $response
@@ -52,22 +52,10 @@ class PedidoController extends Pedido implements IApiUsable
 
     public function BorrarUno($request, $response, $args)
     {
-        $PedidoId = $args['id'];
-        Pedido::borrarPedido($PedidoId);
+        $OrdenId = $args['id'];
+        Orden::borrarOrden($OrdenId);
 
-        $payload = json_encode(array("mensaje" => "Pedido borrado con exito"));
-
-        $response->getBody()->write($payload);
-        return $response->withHeader('Content-Type', 'application/json');
-    }
-
-    public function Pruebas($request, $response, $args)
-    {
-        $parametros = $request->getParsedBody();
-
-        echo $parametros['id'];
-
-        $payload = json_encode(array("mensaje" => "RECIBI EL PUT"));
+        $payload = json_encode(array("mensaje" => "Orden borrada con exito"));
 
         $response->getBody()->write($payload);
         return $response->withHeader('Content-Type', 'application/json');
