@@ -37,11 +37,9 @@ class MesaController extends Mesa implements IApiUsable
     }
 
     public static function ModificarUno($request, $response, $args)
-    {
-        $parametros = $request->getParsedBody();
-        $usr = newMesa($parametros);
-        $usr->id = $parametros['id'];
-        $usr->modificarMesa();
+    {      
+        $usr = editarMesa($args['id'],$request->getParsedBody());
+        Mesa::modificarMesa($usr);
 
         $payload = json_encode(array("mensaje" => "Mesa modificada con exito"));
 

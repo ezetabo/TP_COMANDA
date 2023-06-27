@@ -14,13 +14,13 @@ require __DIR__ . '/../vendor/autoload.php';
 
 require_once './db/AccesoDatos.php';
 require_once './middlewares/Logger.php';
-require_once './middlewares/AutentificadorJWT.php';
 require_once './middlewares/Check.php';
 
 require_once './controllers/UsuarioController.php';
 require_once './controllers/ProductoController.php';
 require_once './controllers/MesaController.php';
 require_once './controllers/PedidoController.php';
+require_once './controllers/AtenderController.php';
 
 
 
@@ -47,7 +47,9 @@ $app->addErrorMiddleware(true, true, true)
 $app->addBodyParsingMiddleware();
 
 // Routes
-
+/* ----------------------------------------------------------------- */
+/* -------------------   Logueo  ----------------------------------- */
+/* ----------------------------------------------------------------- */
 $app->post('/login', \UsuarioController::class . '::Login')
   ->add(\Logger::class . '::ValidarEstado')
   ->add(\Logger::class . '::ValidarMailYpass')
@@ -56,14 +58,22 @@ $app->post('/login', \UsuarioController::class . '::Login')
 $app->get('/logout', function (Request $request, Response $response) {
   $payload = json_encode(array("mensaje" => 'Sesion Cerrada'));
   $response->getBody()->write($payload);
+  $cookies = $_COOKIE;
+  foreach ($cookies as $nombre => $valor) {
+    setcookie($nombre, '', time() - 3600);
+  }
   return $response->withHeader('Content-Type', 'application/json');
-})->add(\Logger::class . '::LimpiarCookie');
+});
 
+
+/* ----------------------------------------------------------------- */
+/* -------------------  Usuarios ----------------------------------- */
+/* ----------------------------------------------------------------- */
 $app->group('/usuarios', function (RouteCollectorProxy $group) {
   $group->get('[/]', \UsuarioController::class . ':TraerTodos');
   $group->get('/{id}', \UsuarioController::class . ':TraerUno');
   $group->post('[/]', \UsuarioController::class . '::CargarUno')
-    ->add(\Check::class . '::ExisteMail')
+    ->add(\Check::class . '::MailDisponible')
     ->add(\Check::class . '::Rol')
     ->add(\Check::class . '::Clave')
     ->add(\Check::class . '::Mail');
@@ -75,29 +85,25 @@ $app->group('/usuarios', function (RouteCollectorProxy $group) {
   ->add(\Logger::class . '::EstaLogueado');
 
 
+
+/* ----------------------------------------------------------------- */
+/* ------------------- Prdocutos ----------------------------------- */
+/* ----------------------------------------------------------------- */
 $app->group('/productos', function (RouteCollectorProxy $group) {
   $group->get('[/]', \ProductoController::class . ':TraerTodos');
   $group->get('/{id}', \ProductoController::class . ':TraerUno');
-  $group->post('[/]', \ProductoController::class . '::CargarUno')
-    ->add(function ($request, $handler) {
-      return \Logger::ValidarRol($request, $handler, 'socio');
-    })
-    ->add(\Logger::class . '::ValidarUsuario')
-    ->add(\Logger::class . '::EstaLogueado');
-  $group->delete('/{id}', \ProductoController::class . ':BorrarUno')
-    ->add(function ($request, $handler) {
-      return \Logger::ValidarRol($request, $handler, 'socio');
-    })
-    ->add(\Logger::class . '::ValidarUsuario')
-    ->add(\Logger::class . '::EstaLogueado');
-  $group->post('/editar', \ProductoController::class . ':ModificarUno')
-    ->add(function ($request, $handler) {
-      return \Logger::ValidarRol($request, $handler, 'socio');
-    })
-    ->add(\Logger::class . '::ValidarUsuario')
-    ->add(\Logger::class . '::EstaLogueado');
-});
+  $group->post('[/]', \ProductoController::class . '::CargarUno')->add(\Logger::class . '::ValidarRol');
+  $group->delete('/{id}', \ProductoController::class . ':BorrarUno')->add(\Logger::class . '::ValidarRol');
+  $group->post('/editar', \ProductoController::class . ':ModificarUno')->add(\Logger::class . '::ValidarRol');
+})
+  ->add(\Logger::class . '::ValidarRol')
+  ->add(\Logger::class . '::ValidarUsuario')
+  ->add(\Logger::class . '::EstaLogueado');
 
+
+/* ----------------------------------------------------------------- */
+/* -------------------   Mesas   ----------------------------------- */
+/* ----------------------------------------------------------------- */
 $app->group('/mesas', function (RouteCollectorProxy $group) {
   $group->get('[/]', \MesaController::class . ':TraerTodos');
   $group->get('/{id}', \MesaController::class . ':TraerUno');
@@ -108,10 +114,17 @@ $app->group('/mesas', function (RouteCollectorProxy $group) {
   ->add(\Logger::class . '::ValidarUsuario')
   ->add(\Logger::class . '::EstaLogueado');
 
+
+/* ----------------------------------------------------------------- */
+/* -------------------   Pedidos ----------------------------------- */
+/* ----------------------------------------------------------------- */
 $app->group('/pedidos', function (RouteCollectorProxy $group) {
   $group->get('[/]', \PedidoController::class . ':TraerTodos');
   $group->get('/{id}', \PedidoController::class . ':TraerUno');
-  $group->post('[/]', \PedidoController::class . '::CargarUno');
+  $group->post('[/]', \PedidoController::class . '::CargarUno')
+    ->add(function ($request, $handler) {
+      return \Logger::ValidarRol($request, $handler, 'mozo');
+    });
   $group->delete('/{id}', \PedidoController::class . ':BorrarUno');
   $group->post('/editar', \PedidoController::class . ':ModificarUno');
   $group->put('/modificar', \PedidoController::class . ':Pruebas');
@@ -120,77 +133,69 @@ $app->group('/pedidos', function (RouteCollectorProxy $group) {
   ->add(\Logger::class . '::EstaLogueado');
 
 
-// JWT test routes
-$app->group('/jwt', function (RouteCollectorProxy $group) {
+/* ----------------------------------------------------------------- */
+/* -------------------   Atender ----------------------------------- */
+/* ----------------------------------------------------------------- */
+$app->group('/atender', function (RouteCollectorProxy $group) {
+  $group->post('[/]', \AtenderController::class . '::Atender')
+    ->add(\Check::class . '::ExisteMesa')
+    ->add(function ($request, $handler) {
+      return \Check::CampoRequerido($request, $handler, 'id_mesa');
+    })
+    ->add(function ($request, $handler) {
+      return \Check::CampoRequerido($request, $handler, 'cliente');
+    })
+    ->add(function ($request, $handler) {
+      return \Check::CampoOpcionalFile($request, $handler, 'foto');
+    })
+    ->add(function ($request, $handler) {
+      return \Logger::ValidarRol($request, $handler, 'mozo');
+    });
 
-  $group->post('/crearToken', function (Request $request, Response $response) {
-    $parametros = $request->getParsedBody();
+  $group->post('/ordenar', \AtenderController::class . '::GenerarOrden')
+    ->add(function ($request, $handler) {
+      $parametros = $request->getParsedBody();
+      return \Check::ExisteProducto($request, $handler, $parametros['producto']);
+    })
+    ->add(function ($request, $handler) {
+      return \Check::CampoRequerido($request, $handler, 'producto');
+    })
+    ->add(function ($request, $handler) {
+      return \Check::CampoRequerido($request, $handler, 'codigo_pedido');
+    })
+    ->add(function ($request, $handler) {
+      return \Logger::ValidarRol($request, $handler, 'mozo');
+    });
 
-    $usuario = $parametros['usuario'];
-    $perfil = $parametros['perfil'];
-    $alias = $parametros['alias'];
+  $group->get('/preparar', \AtenderController::class . '::PrepararOrden')
+    ->add(function ($request, $handler) {
+      return \Check::CampoRequeridoParam($request, $handler, 'id');
+    })
+    ->add(\Check::class . '::OrdenDisponible');
+})
+  ->add(\Logger::class . '::EstaLogueado');
 
-    $datos = array('usuario' => $usuario, 'perfil' => $perfil, 'alias' => $alias);
+/* ----------------------------------------------------------------- */
+/* -------------------   Ordenes ----------------------------------- */
+/* ----------------------------------------------------------------- */
+$app->group('/ordenes', function (RouteCollectorProxy $group) {
+  $group->get('[/]', \AtenderController::class . '::Todas')
+    ->add(function ($request, $handler) {
+      return \Logger::ValidarRol($request, $handler, 'mozo');
+    });
 
-    $token = AutentificadorJWT::CrearToken($datos);
-    $payload = json_encode(array('jwt' => $token));
+  $group->get('/pendientes', \AtenderController::class . '::Pendientes');
+})
+  ->add(\Logger::class . '::EstaLogueado');
 
-    $response->getBody()->write($payload);
-    return $response
-      ->withHeader('Content-Type', 'application/json');
+
+$app->get('/consultar', \AtenderController::class . '::ConsultaCliente')
+  ->add(function ($request, $handler) {
+    return \Check::CampoRequeridoParam($request, $handler, 'codigo_mesa');
+  })
+  ->add(function ($request, $handler) {
+    return \Check::CampoRequeridoParam($request, $handler, 'codigo_pedido');
   });
-
-  $group->get('/devolverPayLoad', function (Request $request, Response $response) {
-    $header = $request->getHeaderLine('Authorization');
-    $token = trim(explode("Bearer", $header)[1]);
-
-    try {
-      $payload = json_encode(array('payload' => AutentificadorJWT::ObtenerPayLoad($token)));
-    } catch (Exception $e) {
-      $payload = json_encode(array('error' => $e->getMessage()));
-    }
-
-    $response->getBody()->write($payload);
-    return $response
-      ->withHeader('Content-Type', 'application/json');
-  });
-
-  $group->get('/devolverDatos', function (Request $request, Response $response) {
-    $header = $request->getHeaderLine('Authorization');
-    $token = trim(explode("Bearer", $header)[1]);
-
-    try {
-      $payload = json_encode(array('datos' => AutentificadorJWT::ObtenerData($token)));
-    } catch (Exception $e) {
-      $payload = json_encode(array('error' => $e->getMessage()));
-    }
-
-    $response->getBody()->write($payload);
-    return $response
-      ->withHeader('Content-Type', 'application/json');
-  });
-
-  $group->get('/verificarToken', function (Request $request, Response $response) {
-    $header = $request->getHeaderLine('Authorization');
-    $token = trim(explode("Bearer", $header)[1]);
-    $esValido = false;
-
-    try {
-      AutentificadorJWT::verificarToken($token);
-      $esValido = true;
-    } catch (Exception $e) {
-      $payload = json_encode(array('error' => $e->getMessage()));
-    }
-
-    if ($esValido) {
-      $payload = json_encode(array('valid' => $esValido));
-    }
-
-    $response->getBody()->write($payload);
-    return $response
-      ->withHeader('Content-Type', 'application/json');
-  });
-});
 
 $app->get('[/]', function (Request $request, Response $response) {
   $payload = json_encode(array("mensaje" => 'TP_TABOADA_EZEQUIEL'));

@@ -38,13 +38,9 @@ class UsuarioController extends Usuario implements IApiUsable
   }
 
   public static function ModificarUno($request, $response, $args)
-  {
-    $parametros = $request->getParsedBody();
-
-    $usr = newUsuario($parametros);
-    $usr->id = $parametros['id'];
-    $usr->estado = $parametros['estado'];
-    $usr->modificarUsuario();
+  {    
+    $usr = editarUsuario($args['id'],$request->getParsedBody());  
+    Usuario::modificarUsuario($usr);
 
     $payload = json_encode(array("mensaje" => "Usuario modificado con exito"));
 
@@ -67,7 +63,7 @@ class UsuarioController extends Usuario implements IApiUsable
   public static function Login($request, $response, $args)
   {
     $dts = $request->getParsedBody();
-    $token = AutentificadorJWT::CrearToken(array('mail'=>$dts['mail'],'clave'=>$dts['clave'],'rol'=>$dts['rol'],'estado'=>$dts['estado']));
+    $token = AutentificadorJWT::CrearToken(array('id'=>$dts['id'],'mail'=>$dts['mail'],'clave'=>$dts['clave'],'rol'=>$dts['rol'],'estado'=>$dts['estado']));
     setcookie('JWT', $token, time()+3600*8, '/', 'localhost', false, true);
     $payload = json_encode(array("mensaje" => "Login exitoso"));
     $response->getBody()->write($payload);

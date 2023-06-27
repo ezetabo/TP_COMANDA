@@ -11,6 +11,7 @@ class Logger
         if ($usr !== false && password_verify($clave, $usr->clave)) {
             $parsedBody['rol'] = $usr->rol;
             $parsedBody['estado'] = $usr->estado;
+            $parsedBody['id'] = $usr->id;
             $request = $request->withParsedBody($parsedBody);
             return $handler->handle($request);
         }
@@ -31,7 +32,10 @@ class Logger
     {
         $cookies = $request->getCookieParams();
         if (isset($cookies['JWT'])) {
-            return $handler->handle($request);
+         if(AutentificadorJWT::ObtenerData($cookies['JWT'])->estado == 'activo'){
+             return $handler->handle($request);
+         }
+         throw new Exception("Los datos no coresponden a un usuario activo");
         }
         throw new Exception('Debe estar logueado para acceder a esta ruta.');
     }

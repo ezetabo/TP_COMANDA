@@ -49,28 +49,31 @@ class Usuario
         return $consulta->fetchObject('Usuario');
     }
 
-    public function modificarUsuario()
+    public static function modificarUsuario($datos)
     {
         $objAccesoDato = AccesoDatos::obtenerInstancia();
         $consulta = $objAccesoDato->prepararConsulta("UPDATE usuarios 
                                                     SET mail = :mail, clave = :clave, rol = :rol, estado = :estado
                                                     WHERE id = :id");
-        $claveHash = password_hash($this->clave, PASSWORD_DEFAULT);
-        $consulta->bindValue(':mail', $this->mail, PDO::PARAM_STR);
+        $claveHash = password_hash($datos->clave, PASSWORD_DEFAULT);
+        $consulta->bindValue(':mail', $datos->mail, PDO::PARAM_STR);
         $consulta->bindValue(':clave', $claveHash);
-        $consulta->bindValue(':rol', $this->rol, PDO::PARAM_STR);
-        $consulta->bindValue(':estado', $this->estado, PDO::PARAM_STR);
-        $consulta->bindValue(':id', $this->id, PDO::PARAM_INT);
+        $consulta->bindValue(':rol', $datos->rol, PDO::PARAM_STR);
+        $consulta->bindValue(':estado', $datos->estado, PDO::PARAM_STR);
+        $consulta->bindValue(':id', $datos->id, PDO::PARAM_INT);
         $consulta->execute();
     }
 
     public static function borrarUsuario($usuario)
     {
         $objAccesoDato = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDato->prepararConsulta("UPDATE usuarios SET fecha_fin = :fecha_fin WHERE id = :id");
+        $consulta = $objAccesoDato->prepararConsulta("UPDATE usuarios 
+                                                    SET fecha_fin = :fecha_fin, estado = :estado
+                                                    WHERE id = :id");
         $fecha = new DateTime(date("d-m-Y"));
-        $consulta->bindValue(':id', $usuario, PDO::PARAM_INT);
         $consulta->bindValue(':fecha_fin', date_format($fecha, 'Y-m-d H:i:s'));
+        $consulta->bindValue(':estado', 'baja', PDO::PARAM_STR);
+        $consulta->bindValue(':id', $usuario, PDO::PARAM_INT);
         $consulta->execute();
     }
 

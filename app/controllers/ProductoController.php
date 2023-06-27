@@ -38,10 +38,10 @@ class ProductoController extends Producto implements IApiUsable
 
     public static function ModificarUno($request, $response, $args)
     {
-        $parametros = $request->getParsedBody();
-        $usr = newProducto($parametros);
-        $usr->id = $parametros['id'];
-        $usr->modificarProducto();
+       
+        $usr = newProducto($args['id'],$request->getParsedBody());
+     
+        Producto::modificarProducto($usr);
 
         $payload = json_encode(array("mensaje" => "Producto modificado con exito"));
 
