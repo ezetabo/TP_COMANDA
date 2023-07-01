@@ -172,19 +172,33 @@ $app->group('/atender', function (RouteCollectorProxy $group) {
       return \Check::CampoRequeridoParam($request, $handler, 'id');
     })
     ->add(\Check::class . '::OrdenDisponible');
-})
-  ->add(\Logger::class . '::EstaLogueado');
+
+  $group->get('/servir', \AtenderController::class . '::ServirOrden')
+    ->add(\Check::class . '::OrdenListaParaServir')
+    ->add(function ($request, $handler) {
+      return \Check::CampoRequeridoParam($request, $handler, 'id');
+    })
+    ->add(function ($request, $handler) {
+      return \Logger::ValidarRol($request, $handler, 'mozo');
+    });
+})->add(\Logger::class . '::EstaLogueado');
 
 /* ----------------------------------------------------------------- */
 /* -------------------   Ordenes ----------------------------------- */
 /* ----------------------------------------------------------------- */
 $app->group('/ordenes', function (RouteCollectorProxy $group) {
+
   $group->get('[/]', \AtenderController::class . '::Todas')
     ->add(function ($request, $handler) {
       return \Logger::ValidarRol($request, $handler, 'mozo');
     });
 
   $group->get('/pendientes', \AtenderController::class . '::Pendientes');
+
+  $group->get('/para_servir', \AtenderController::class . '::ParaServir')
+    ->add(function ($request, $handler) {
+      return \Logger::ValidarRol($request, $handler, 'mozo');
+    });;
 })
   ->add(\Logger::class . '::EstaLogueado');
 
@@ -197,6 +211,11 @@ $app->get('/consultar', \AtenderController::class . '::ConsultaCliente')
     return \Check::CampoRequeridoParam($request, $handler, 'codigo_pedido');
   });
 
+
+
+
+
+  
 $app->get('[/]', function (Request $request, Response $response) {
   $payload = json_encode(array("mensaje" => 'TP_TABOADA_EZEQUIEL'));
   $response->getBody()->write($payload);

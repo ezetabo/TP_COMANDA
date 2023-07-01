@@ -24,11 +24,23 @@ function newUsuario($parametros): Usuario
 function newProducto($parametros): Producto
 {
     $usr = new Producto();
+    $usr->id = isset($parametros['id']) ? $parametros['id'] : false;
     $usr->nombre = $parametros['nombre'];
     $usr->precio =  $parametros['precio'];
     $usr->sector =  $parametros['sector'];
     return $usr;
 }
+
+function newProductoCSV($data): Producto
+{
+    $producto = new Producto();
+    $producto->id = $data[0];
+    $producto->nombre = $data[1];
+    $producto->precio = $data[2];
+    $producto->sector = $data[3];
+    return $producto;
+}
+
 
 function newMesa($parametros): Mesa
 {
@@ -48,7 +60,7 @@ function newPedido($parametros): Pedido
     $usr->importe_final =  $parametros['importe_final'];
     if ($parametros['foto'] != false) {
         $path = './Fotos/';
-        $nombre = $parametros['codigo_pedido'].'_'.$parametros['cliente'] . '_' . (new DateTime())->format('Y-m-d_H-i-s') . '.jpg';
+        $nombre = $parametros['codigo_pedido'] . '_' . $parametros['cliente'] . '_' . (new DateTime())->format('Y-m-d_H-i-s') . '.jpg';
         $targetPath = $path . $nombre;
         $usr->foto = $targetPath;
         F_CTRL::CrearDirectorio($path);
@@ -227,20 +239,35 @@ function generarCodigoAlfanumerico($longitud = 5)
     return $codigo;
 }
 
-function generarTiempoAleatorio() {
-    $tiempo = rand(5, 45); 
+function generarTiempoAleatorio()
+{
+    $tiempo = rand(5, 45);
     return $tiempo;
 }
 
-function diferenciaEnMinutos($horaInicio, $horaFin) {
+
+function calcuDiferencia($datos)
+{
+    $tiempo1 = strtotime($datos->hora_generado);
+    $tiempo2 = strtotime($datos->hora_finalizado);
+    $diferencia = abs($tiempo2 - $tiempo1) / 60;
+
+    return $diferencia - $datos->tiempo_estimado;
+}
+
+
+
+
+function diferenciaEnMinutos($horaInicio, $horaFin)
+{
     $inicio = new DateTime($horaInicio);
     $fin = new DateTime($horaFin);
     $diferencia = $inicio->diff($fin);
-    
+
     $horasEnMinutos = $diferencia->h * 60;
     $minutos = $diferencia->i;
-    
+
     $totalMinutos = $horasEnMinutos + $minutos;
-    
+
     return $totalMinutos;
 }

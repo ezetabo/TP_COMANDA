@@ -65,7 +65,7 @@ class UsuarioController extends Usuario implements IApiUsable
     $dts = $request->getParsedBody();
     $token = AutentificadorJWT::CrearToken(array('id'=>$dts['id'],'mail'=>$dts['mail'],'clave'=>$dts['clave'],'rol'=>$dts['rol'],'estado'=>$dts['estado']));
     setcookie('JWT', $token, time()+3600*8, '/', 'localhost', false, true);
-    $payload = json_encode(array("mensaje" => "Login exitoso"));
+    $payload = json_encode(array("mensaje" => "Login exitoso",'rol'=>$dts['rol']));
     $response->getBody()->write($payload);
     return $response->withHeader('Content-Type', 'application/json');
   }

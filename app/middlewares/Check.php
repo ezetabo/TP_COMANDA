@@ -135,14 +135,31 @@ class Check
         $datos = AutentificadorJWT::ObtenerData($token);
         $orden = Orden::obtenerOrden($parametros['id']);
         $producto = Producto::obtenerProductoPorNombre($orden->producto);
-        if ($orden !== false) {           
+        if ($orden !== false) {
             if ($producto->sector == $datos->rol) {
-                if ($orden->estado != 'listo para servir' && $orden->estado != 'entregado') {
+                if ($orden->estado == 'pendiente' || $orden->estado == 'en preparacion') {
                     return $handler->handle($request);
                 }
-                throw new Exception('El estado de la orden N° ' . $orden->id . ' es [ ' . $orden->estado . ' ]');
+                throw new Exception('orden N° ' . $orden->id . ' no disponible para preparacion, su estado es [ ' . $orden->estado . ' ]');
             }
             throw new Exception('La orden N° ' . $orden->id . ' NO corresponde a su sector');
+        }
+        throw new Exception("La orden no existe en la BD");
+    }
+
+    public static function OrdenListaParaServir($request, $handler)
+    {
+        $parametros = $request->getQueryParams();
+        $cookies = $request->getCookieParams();
+        $token = $cookies['JWT'];
+        $datos = AutentificadorJWT::ObtenerData($token);
+        $orden = Orden::obtenerOrden($parametros['id']);
+        $producto = Producto::obtenerProductoPorNombre($orden->producto);
+        if ($orden !== false) {
+            if ($orden->estado == 'listo para servir') {
+                return $handler->handle($request);
+            }
+            throw new Exception('orden N° ' . $orden->id . ' no disponible para servir, su estado es [ ' . $orden->estado . ' ]');
         }
         throw new Exception("La orden no existe en la BD");
     }

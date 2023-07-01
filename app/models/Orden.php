@@ -101,7 +101,7 @@ class Orden
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
         $consulta = $objAccesoDatos->prepararConsulta(
-            "SELECT ordenes.id AS N°orden,codigo_pedido, producto, id_preparador, tiempo_estimado, hora_generado, hora_finalizado ,estado,productos.sector AS sector
+            "SELECT ordenes.id AS orden,codigo_pedido, producto, id_preparador, tiempo_estimado, hora_generado, hora_finalizado ,estado,productos.sector AS sector
             FROM ordenes
             INNER JOIN productos ON ordenes.producto = productos.nombre
             WHERE ordenes.estado = :estado AND productos.sector = :sector"
@@ -111,5 +111,19 @@ class Orden
         $consulta->execute();
 
         return $consulta->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public static function obtenerTodosPorPedido($pedido)
+    {
+        $objAccesoDatos = AccesoDatos::obtenerInstancia();
+        $consulta = $objAccesoDatos->prepararConsulta(
+            "SELECT id, codigo_pedido, producto, id_preparador, tiempo_estimado, hora_generado, hora_finalizado ,estado
+            FROM ordenes
+            WHERE codigo_pedido = :pedido"
+        );
+        $consulta->bindValue(':pedido', $pedido, PDO::PARAM_STR);
+        $consulta->execute();
+
+        return $consulta->fetchAll(PDO::FETCH_CLASS, 'Orden');
     }
 }

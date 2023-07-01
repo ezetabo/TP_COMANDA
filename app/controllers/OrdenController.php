@@ -41,7 +41,7 @@ class OrdenController extends Orden implements IApiUsable
         $parametros = $request->getParsedBody();
         $usr = newOrden($parametros);
         $usr->id = $parametros['id'];
-        $usr->modificarOrden();
+        Orden::modificarOrden($usr);
 
         $payload = json_encode(array("mensaje" => "Orden modificada con exito"));
 

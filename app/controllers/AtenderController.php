@@ -100,6 +100,16 @@ class AtenderController
             ->withHeader('Content-Type', 'application/json');
     }
 
+    public static function ParaServir($request, $response, $args)
+    {
+        $lista = Orden::obtenerPorestado('listo para servir');
+        $payload = json_encode(array("listaOrden" => $lista));
+        $response->getBody()->write($payload);
+        return $response
+            ->withHeader('Content-Type', 'application/json');
+    }
+
+
     public static function PrepararOrden($request, $response, $args)
     {
         $parametros = $request->getQueryParams();
@@ -113,12 +123,35 @@ class AtenderController
             $orden->estado = 'en preparacion';
             Orden::modificarOrden($orden);
             $mensaje = 'La orden paso a preparacion, tiempo estimado: ' . $orden->tiempo_estimado . ' minutos.';
-        }else{
+        } else {
             $orden->estado = 'listo para servir';
-            $orden->hora_finalizado = date("H:i");
+            $orden->hora_finalizado = date("H:i", strtotime($orden->hora_generado) + (generarTiempoAleatorio() * 60));;
             Orden::modificarOrden($orden);
             $mensaje = 'La orden se encuentra lista para servir.';
         }
+
+        $payload = json_encode(array("mensaje" => $mensaje));
+        $response->getBody()->write($payload);
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    public static function ServirOrden($request, $response, $args)
+    {
+        $parametros = $request->getQueryParams();
+        $cookies = $request->getCookieParams();
+        $token = $cookies['JWT'];
+        $mozo = AutentificadorJWT::ObtenerData($token);
+        $datosRecuperados = unserialize($_COOKIE[$mozo->id . '_Pedidos']);       
+
+        $orden = Orden::obtenerOrden($parametros['id']);
+        $mesa = Mesa::obtenerMesa($datosRecuperados['id_mesa']);
+
+        $orden->estado = calcuDiferencia($orden) < 1 ? 'entregado' : 'entregado con demora';
+        $mesa->estado = 'con cliente comiendo';
+
+        Mesa::modificarMesa($mesa);
+        Orden::modificarOrden($orden);
+        $mensaje = 'entrega exitosa, los clientes ya estan comiendo';
 
         $payload = json_encode(array("mensaje" => $mensaje));
         $response->getBody()->write($payload);

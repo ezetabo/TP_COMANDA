@@ -64,16 +64,16 @@ class F_CTRL
                 $html .= '<p style="font-size: 12px;">' . ucfirst($propiedad) . ': ' . $valor . '</p>';
             }
             $html .= '<hr>';
-            $contador ++;
+            $contador++;
         }
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
         $pdfOutput = $dompdf->output();
         self::CrearDirectorio($path);
-        return file_put_contents($path.$nombre . '.pdf', $pdfOutput) !== false;
+        return file_put_contents($path . $nombre . '.pdf', $pdfOutput) !== false;
     }
-    
+
     public static function GenerarPdfOnline($datos)
     {
         $dompdf = new Dompdf();
@@ -85,13 +85,30 @@ class F_CTRL
                 $html .= '<p style="font-size: 12px;">' . ucfirst($propiedad) . ': ' . $valor . '</p>';
             }
             $html .= '<hr>';
-            $contador ++;
+            $contador++;
         }
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
-        $dompdf->render();       
-     
+        $dompdf->render();
+
         return $dompdf->output();
     }
-    
+
+    function cargarObjetosDesdeCSV($rutaArchivo, $crearObjetoCallback): array
+    {
+        $objetos = [];
+        if (($handle = fopen($rutaArchivo, "r")) != false) {
+            while (!feof($handle)) {
+                $linea = fgets($handle);
+                if (trim($linea) == '') {
+                    continue;
+                }
+                $data = str_getcsv($linea);
+                $objeto = call_user_func($crearObjetoCallback, $data);
+                $objetos[] = $objeto;
+            }
+            fclose($handle);
+        }
+        return $objetos;
+    }
 }
