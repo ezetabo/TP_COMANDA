@@ -29,7 +29,7 @@ class PedidoController extends Pedido implements IApiUsable
     public function TraerTodos($request, $response, $args)
     {
         $lista = Pedido::obtenerTodos();
-        $payload = json_encode(array("listaPedido" => $lista));
+        $payload = json_encode(array("lista_pedido" => $lista));
 
         $response->getBody()->write($payload);
         return $response
@@ -59,15 +59,4 @@ class PedidoController extends Pedido implements IApiUsable
         return $response->withHeader('Content-Type', 'application/json');
     }
 
-    public function Pruebas($request, $response, $args)
-    {
-        $parametros = $request->getParsedBody();
-
-        echo $parametros['id'];
-
-        $payload = json_encode(array("mensaje" => "RECIBI EL PUT"));
-
-        $response->getBody()->write($payload);
-        return $response->withHeader('Content-Type', 'application/json');
-    }
 }

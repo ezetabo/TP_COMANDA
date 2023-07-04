@@ -29,7 +29,7 @@ class OrdenController extends Orden implements IApiUsable
     public function TraerTodos($request, $response, $args)
     {
         $lista = Orden::obtenerTodos();
-        $payload = json_encode(array("listaOrden" => $lista));
+        $payload = json_encode(array("lista_orden" => $lista));
 
         $response->getBody()->write($payload);
         return $response
@@ -60,4 +60,5 @@ class OrdenController extends Orden implements IApiUsable
         $response->getBody()->write($payload);
         return $response->withHeader('Content-Type', 'application/json');
     }
+
 }

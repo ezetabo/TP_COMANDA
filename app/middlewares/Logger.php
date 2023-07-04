@@ -18,6 +18,21 @@ class Logger
         throw new Exception("Mail y/o password no válidos");
     }
 
+    public static function LogueoUnico($request, $handler)
+    {
+        $parsedBody = $request->getParsedBody();
+        $cookies = $request->getCookieParams();
+        $mail = $parsedBody['mail'];
+        $clave = $parsedBody['clave'];
+        if (isset($cookies['JWT'])) {
+            $datos = AutentificadorJWT::ObtenerData($cookies['JWT']);
+            if ($datos->mail == $mail && $datos->clave == $clave) {
+                throw new Exception("Ya tiene una sesion abierta");
+            }
+        }
+        return $handler->handle($request);
+    }
+
     public static function ValidarEstado($request, $handler)
     {
         $parsedBody = $request->getParsedBody();
@@ -32,10 +47,10 @@ class Logger
     {
         $cookies = $request->getCookieParams();
         if (isset($cookies['JWT'])) {
-         if(AutentificadorJWT::ObtenerData($cookies['JWT'])->estado == 'activo'){
-             return $handler->handle($request);
-         }
-         throw new Exception("Los datos no coresponden a un usuario activo");
+            if (AutentificadorJWT::ObtenerData($cookies['JWT'])->estado == 'activo') {
+                return $handler->handle($request);
+            }
+            throw new Exception("Los datos no coresponden a un usuario activo");
         }
         throw new Exception('Debe estar logueado para acceder a esta ruta.');
     }
@@ -57,15 +72,15 @@ class Logger
         $cookies = $request->getCookieParams();
         $token = $cookies['JWT'];
         $datos = AutentificadorJWT::ObtenerData($token);
-        if ((!$rol && $datos->rol == 'socio') || $rol && ($datos->rol == $rol || $datos->rol =='socio')) {
+        if ((!$rol && $datos->rol == 'socio') || $rol && ($datos->rol == $rol || $datos->rol == 'socio')) {
             return $handler->handle($request);
         }
         throw new Exception("Ud no cuenta con los permisos para esta ruta");
     }
 
     public static function LimpiarCookie($request, $handler)
-    {    
+    {
         setcookie("JWT", "", time() - 3600);
-        return $handler->handle($request);        
+        return $handler->handle($request);
     }
 }

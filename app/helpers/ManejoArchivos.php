@@ -94,21 +94,38 @@ class F_CTRL
         return $dompdf->output();
     }
 
-    function cargarObjetosDesdeCSV($rutaArchivo, $crearObjetoCallback): array
+    public static function cargarObjetosDesdeCSV($csvData, $crearObjetoCallback): array
     {
         $objetos = [];
-        if (($handle = fopen($rutaArchivo, "r")) != false) {
-            while (!feof($handle)) {
-                $linea = fgets($handle);
-                if (trim($linea) == '') {
-                    continue;
-                }
-                $data = str_getcsv($linea);
-                $objeto = call_user_func($crearObjetoCallback, $data);
-                $objetos[] = $objeto;
+        $lines = explode("\n", $csvData);
+        $headers = str_getcsv(array_shift($lines));
+        
+        foreach ($lines as $line) {
+            $data = str_getcsv($line);
+            if (count($data) < count($headers)) {
+                continue; 
             }
-            fclose($handle);
+            $objeto = call_user_func($crearObjetoCallback, $data);
+            $objetos[] = $objeto;
         }
+        
         return $objetos;
     }
-}
+
+    public static function GenerarCsvOnline($datos)
+    {
+        $tempFile = tempnam(sys_get_temp_dir(), 'csv');
+        $archivo = fopen($tempFile, 'w+');  
+        $encabezados = array_keys(get_object_vars($datos[0]));
+        fputcsv($archivo, $encabezados);    
+        foreach ($datos as $objeto) {
+            $valores = array_values(get_object_vars($objeto));
+            fputcsv($archivo, $valores);
+        }    
+        fclose($archivo);
+        $contenido = file_get_contents($tempFile);
+        unlink($tempFile);
+    
+        return $contenido;
+    }
+}    

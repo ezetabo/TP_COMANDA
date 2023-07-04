@@ -126,4 +126,65 @@ class Orden
 
         return $consulta->fetchAll(PDO::FETCH_CLASS, 'Orden');
     }
+
+    public static function obtenerMayorTiempoEstimado($codigoPedido)
+    {
+        $objAccesoDatos = AccesoDatos::obtenerInstancia();
+        $consulta = $objAccesoDatos->prepararConsulta("SELECT MAX(tiempo_estimado)
+                                                  FROM ordenes
+                                                  WHERE codigo_pedido = :codigoPedido
+                                                  AND estado = 'en preparacion'");
+        $consulta->bindValue(':codigoPedido', $codigoPedido, PDO::PARAM_STR);
+        $consulta->execute();
+
+        return $consulta->fetchColumn();
+    }
+
+    public static function obtenerCantidadOrdenesPorEstado($codigoPedido, $estado)
+    {
+        $objAccesoDatos = AccesoDatos::obtenerInstancia();
+        $consulta = $objAccesoDatos->prepararConsulta("SELECT COUNT(*) AS cantidad
+                                                  FROM ordenes
+                                                  WHERE codigo_pedido = :codigoPedido
+                                                  AND estado = :estado");
+        $consulta->bindValue(':codigoPedido', $codigoPedido, PDO::PARAM_STR);
+        $consulta->bindValue(':estado', $estado, PDO::PARAM_STR);
+        $consulta->execute();
+
+        return $consulta->fetchColumn();
+    }
+
+    public static function obtenerCantidadOrdenesNoEntregadas($codigoPedido)
+    {
+        $objAccesoDatos = AccesoDatos::obtenerInstancia();
+        $consulta = $objAccesoDatos->prepararConsulta("SELECT COUNT(*) AS cantidad
+                                                  FROM ordenes
+                                                  WHERE codigo_pedido = :codigoPedido
+                                                  AND estado NOT IN(entregado,entregado con demora)");
+        $consulta->bindValue(':codigoPedido', $codigoPedido, PDO::PARAM_STR);
+        $consulta->execute();
+
+        return $consulta->fetchColumn();
+    }
+
+    public static function tieneEstado($lista, $estado)
+    {
+        foreach ($lista as $p) {
+            if ($p->estado == $estado) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static function filtrarPorEstado($lista, $estado)
+    {
+        $listaFiltrada = [];
+        foreach ($lista as $p) {
+            if ($p->estado == $estado) {
+                $listaFiltrada[] = $p;
+            }
+        }
+        return $listaFiltrada;
+    }
 }

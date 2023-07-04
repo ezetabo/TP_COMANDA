@@ -4,6 +4,9 @@ require_once './models/Producto.php';
 require_once './models/Mesa.php';
 require_once './models/Pedido.php';
 require_once './models/Orden.php';
+require_once './models/Logs.php';
+require_once './models/Estadisticas.php';
+require_once './models/Encuesta.php';
 require_once 'ManejoArchivos.php';
 
 function newUsuario($parametros): Usuario
@@ -28,6 +31,29 @@ function newProducto($parametros): Producto
     $usr->nombre = $parametros['nombre'];
     $usr->precio =  $parametros['precio'];
     $usr->sector =  $parametros['sector'];
+    return $usr;
+}
+
+function newLogs($parametros): Logs
+{
+    $usr = new Logs();
+    $usr->id = isset($parametros['id']) ? $parametros['id'] : false;
+    $usr->usuario = $parametros['usuario'];
+    $usr->rol =  $parametros['rol'];
+    return $usr;
+}
+
+function newEncuesta($parametros): Encuesta
+{
+    $usr = new Encuesta();
+    $usr->id = isset($parametros['id']) ? $parametros['id'] : false;
+    $usr->codigo_pedido = $parametros['codigo_pedido'];
+    $usr->pts_mesa =  $parametros['pts_mesa'];
+    $usr->pts_restaurante =  $parametros['pts_restaurante'];
+    $usr->pts_mozo =  $parametros['pts_mozo'];
+    $usr->pts_cocinero =  $parametros['pts_cocinero'];
+    $usr->comentario =  $parametros['comentario'];
+    $usr->pts_promedio =  ($usr->pts_mesa  + $usr->pts_restaurante + $usr->pts_mozo + $usr->pts_cocinero) / 4;
     return $usr;
 }
 
@@ -69,6 +95,7 @@ function newPedido($parametros): Pedido
         $usr->foto =  $parametros['foto'];
     }
     $usr->cliente =  $parametros['cliente'];
+    $usr->fecha = date('Y-m-d H:i:s');
     return $usr;
 }
 
@@ -255,9 +282,6 @@ function calcuDiferencia($datos)
     return $diferencia - $datos->tiempo_estimado;
 }
 
-
-
-
 function diferenciaEnMinutos($horaInicio, $horaFin)
 {
     $inicio = new DateTime($horaInicio);
@@ -270,4 +294,9 @@ function diferenciaEnMinutos($horaInicio, $horaFin)
     $totalMinutos = $horasEnMinutos + $minutos;
 
     return $totalMinutos;
+}
+
+function validarFecha($fecha) {
+    $timestamp = strtotime($fecha);
+    return $timestamp !== false && $timestamp != -1;
 }

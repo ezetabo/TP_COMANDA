@@ -1,17 +1,18 @@
 <?php
 
-class Mesa{
+class Mesa
+{
     public $id;
     public $codigo;
-    public $estado;   
+    public $estado;
 
     public function crearMesa()
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
         $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO mesas (codigo, estado) 
                                                        VALUES (:codigo, :estado)");
-        $consulta->bindValue(':codigo', $this->codigo, PDO::PARAM_STR);       
-        $consulta->bindValue(':estado', $this->estado, PDO::PARAM_STR);       
+        $consulta->bindValue(':codigo', $this->codigo, PDO::PARAM_STR);
+        $consulta->bindValue(':estado', $this->estado, PDO::PARAM_STR);
         $consulta->execute();
 
         return $objAccesoDatos->obtenerUltimoId();
@@ -39,14 +40,26 @@ class Mesa{
         return $consulta->fetchObject('Mesa');
     }
 
+    public static function obtenerMesaPorCodigo($codigo)
+    {
+        $objAccesoDatos = AccesoDatos::obtenerInstancia();
+        $consulta = $objAccesoDatos->prepararConsulta("SELECT id, codigo, estado
+                                                        FROM mesas 
+                                                        WHERE codigo = :codigo");
+        $consulta->bindValue(':codigo', $codigo, PDO::PARAM_STR);
+        $consulta->execute();
+
+        return $consulta->fetchObject('Mesa');
+    }
+
     public static function modificarMesa($datos)
     {
         $objAccesoDato = AccesoDatos::obtenerInstancia();
         $consulta = $objAccesoDato->prepararConsulta("UPDATE mesas 
                                                     SET codigo = :codigo, estado = :estado
-                                                    WHERE id = :id");       
-        $consulta->bindValue(':codigo', $datos->codigo, PDO::PARAM_STR);     
-        $consulta->bindValue(':estado', $datos->estado, PDO::PARAM_STR);       
+                                                    WHERE id = :id");
+        $consulta->bindValue(':codigo', $datos->codigo, PDO::PARAM_STR);
+        $consulta->bindValue(':estado', $datos->estado, PDO::PARAM_STR);
         $consulta->bindValue(':id', $datos->id, PDO::PARAM_INT);
         $consulta->execute();
     }
@@ -55,8 +68,8 @@ class Mesa{
     {
         $objAccesoDato = AccesoDatos::obtenerInstancia();
         $consulta = $objAccesoDato->prepararConsulta("DELETE FROM mesas
-                                                      WHERE id = :id");     
-        $consulta->bindValue(':id', $id, PDO::PARAM_INT);       
+                                                      WHERE id = :id");
+        $consulta->bindValue(':id', $id, PDO::PARAM_INT);
         $consulta->execute();
     }
 

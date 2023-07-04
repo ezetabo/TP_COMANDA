@@ -1,6 +1,8 @@
 <?php
 error_reporting(-1);
 ini_set('display_errors', 1);
+date_default_timezone_set('America/Argentina/Buenos_Aires');
+
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -21,6 +23,7 @@ require_once './controllers/ProductoController.php';
 require_once './controllers/MesaController.php';
 require_once './controllers/PedidoController.php';
 require_once './controllers/AtenderController.php';
+require_once './controllers/EstadisticasController.php';
 
 
 
@@ -37,7 +40,7 @@ $errorMiddleware = function ($request, $exception, $displayErrorDetails) use ($a
   $statusCode = 500;
   $errorMessage = $exception->getMessage();
   $response = $app->getResponseFactory()->createResponse($statusCode);
-  $response->getBody()->write(json_encode(['error' => $errorMessage]));
+  $response->getBody()->write(json_encode(['AVISO' => $errorMessage]));
 
   return $response->withHeader('Content-Type', 'application/json');
 };
@@ -53,7 +56,8 @@ $app->addBodyParsingMiddleware();
 $app->post('/login', \UsuarioController::class . '::Login')
   ->add(\Logger::class . '::ValidarEstado')
   ->add(\Logger::class . '::ValidarMailYpass')
-  ->add(\Logger::class . '::LimpiarCookie');
+  ->add(\Logger::class . '::LimpiarCookie')
+  ->add(\Logger::class . '::LogueoUnico');
 
 $app->get('/logout', function (Request $request, Response $response) {
   $payload = json_encode(array("mensaje" => 'Sesion Cerrada'));
@@ -181,7 +185,20 @@ $app->group('/atender', function (RouteCollectorProxy $group) {
     ->add(function ($request, $handler) {
       return \Logger::ValidarRol($request, $handler, 'mozo');
     });
-})->add(\Logger::class . '::EstaLogueado');
+
+  $group->get('/cobrar', \AtenderController::class . '::Cobrar')
+    ->add(function ($request, $handler) {
+      return \Logger::ValidarRol($request, $handler, 'mozo');
+    });
+
+  $group->get('/cerrar', \AtenderController::class . '::Cerrar')
+    ->add(\Check::class . '::ExisteMesaPorCodigo')
+    ->add(function ($request, $handler) {
+      return \Check::CampoRequeridoParam($request, $handler, 'codigo_mesa');
+    })
+    ->add(\Logger::class . '::ValidarRol');
+})
+  ->add(\Logger::class . '::EstaLogueado');
 
 /* ----------------------------------------------------------------- */
 /* -------------------   Ordenes ----------------------------------- */
@@ -203,19 +220,83 @@ $app->group('/ordenes', function (RouteCollectorProxy $group) {
   ->add(\Logger::class . '::EstaLogueado');
 
 
-$app->get('/consultar', \AtenderController::class . '::ConsultaCliente')
+/* ----------------------------------------------------------------- */
+/* -------------------   Cliente ----------------------------------- */
+/* ----------------------------------------------------------------- */
+$app->group('/cliente', function (RouteCollectorProxy $group) {
+
+  $group->get('[/]', \AtenderController::class . '::ConsultaCliente')
+    ->add(\Check::class . '::MesaParaConsultas')
+    ->add(function ($request, $handler) {
+      return \Check::CampoRequeridoParam($request, $handler, 'codigo_mesa');
+    })
+    ->add(function ($request, $handler) {
+      return \Check::CampoRequeridoParam($request, $handler, 'codigo_pedido');
+    });
+
+  $group->post('/encuesta', \AtenderController::class . '::CrearEncuesta')
+    ->add(function ($request, $handler) {
+      return \Check::CampoRequerido($request, $handler, 'comentario');
+    })
+    ->add(function ($request, $handler) {
+      return \Check::CampoRequeridoNumericoLimite($request, $handler, 'pts_mesa', 10);
+    })
+    ->add(function ($request, $handler) {
+      return \Check::CampoRequeridoNumericoLimite($request, $handler, 'pts_restaurante', 10);
+    })
+    ->add(function ($request, $handler) {
+      return \Check::CampoRequeridoNumericoLimite($request, $handler, 'pts_mozo', 10);
+    })
+    ->add(function ($request, $handler) {
+      return \Check::CampoRequeridoNumericoLimite($request, $handler, 'pts_cocinero', 10);
+    })
+    ->add(\Check::class . '::EncuestaDisponible')
+    ->add(function ($request, $handler) {
+      return \Check::CampoRequerido($request, $handler, 'codigo_pedido');
+    })
+    ->add(function ($request, $handler) {
+      return \Check::CampoRequerido($request, $handler, 'codigo_mesa');
+    });
+});
+
+/* ----------------------------------------------------------------- */
+/* ------------------- Estadisticas -------------------------------- */
+/* ----------------------------------------------------------------- */
+$app->group('/estadisticas', function (RouteCollectorProxy $group) {
+
+  $group->get('/usuarios', \EstadisticasController::class . ':TraerUsuarios');
+
+  $group->get('/pedidos[/{limite}]', \EstadisticasController::class . ':TraerPedidos')
+    ->setArgument('limite', 3);
+
+  $group->get('/mesas[/{limite}]', \EstadisticasController::class . ':TraerMesas')
+    ->setArgument('limite', 1)
+    ->add(\Check::class . '::ValidarEntreFechasParam');
+
+  $group->get('/comentarios[/{limite}]', \EstadisticasController::class . ':TraerComentarios')
+    ->setArgument('limite', 3);
+})
   ->add(function ($request, $handler) {
-    return \Check::CampoRequeridoParam($request, $handler, 'codigo_mesa');
+    return \Check::CampoRequeridoParam($request, $handler, 'tipo');
   })
+  ->add(\Logger::class . '::ValidarUsuario')
+  ->add(\Logger::class . '::EstaLogueado');
+
+$app->post('/carga_csv', \ProductoController::class . ':CargaCsv')
   ->add(function ($request, $handler) {
-    return \Check::CampoRequeridoParam($request, $handler, 'codigo_pedido');
-  });
+    return \Check::CampoOpcionalFile($request, $handler, 'csv');
+  })
+  ->add(\Logger::class . '::ValidarUsuario')
+  ->add(\Logger::class . '::EstaLogueado');
+
+$app->get('/descarga_csv', \ProductoController::class . ':GenerarCsvOnline')
+  ->add(function ($request, $handler) {
+    return \Check::CampoOpcionalFile($request, $handler, 'csv');
+  })
+  ->add(\Logger::class . '::ValidarUsuario')
+  ->add(\Logger::class . '::EstaLogueado');
 
 
-
-
-
-  
 $app->get('[/]', function (Request $request, Response $response) {
   $payload = json_encode(array("mensaje" => 'TP_TABOADA_EZEQUIEL'));
   $response->getBody()->write($payload);
